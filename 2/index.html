@@ -117,8 +117,8 @@
     }
 
     function initShaders() {
-        var fragmentShader = getShader(gl, "fractal.frag");
-        var vertexShader = getShader(gl, "fractal.vert");
+        var fragmentShader = getShader(gl, "shader.frag");
+        var vertexShader = getShader(gl, "shader.vert");
 
         shaderProgram = gl.createProgram();
         gl.attachShader(shaderProgram, vertexShader);
@@ -169,16 +169,19 @@
         gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
     }
 
-    var Gsize = 30;
-    var GL = -1.0;
-    var GR = 1.0;
-    var GT = -1.0;
-    var GB = 1.0;
-    var GX = 0.0;
-    var GY = 0.0;
-    var S = 1.0;
-    var N = 59.0;
-    var M = 30.0;
+    var M = 59;
+    var N = 59;
+    var deltawheel = 0.25;
+    var OldMouseX = 0.0;
+    var OldMouseY = 0.0;
+    var posX = 5.0;
+    var posY = 0.0;
+    var L = -2.0;
+    var R = 1.0;
+    var T = 1.5;
+    var B = -1.5;
+    var W;
+    var H;
     var triangleVertexPositionBuffer;
     var squareVertexPositionBuffer;
 
@@ -236,14 +239,19 @@
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
         setMatrixUniforms();
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "Usize"), Gsize);
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "maxM"), M);
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "maxN"), N);
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "T"), GT);
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "B"), GB);
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "R"), GR);
-        gl.uniform1f(gl.getUniformLocation(shaderProgram, "L"), GL);
-         gl.uniform1i(gl.getUniformLocation(shaderProgram, "Flag"), 1);
+        if (OldMouseX != posX || OldMouseY != posY) {
+            OldMouseX = posX;
+            OldMouseY = posY;
+        }
+
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "size"), M);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "size2"), N);
+        gl.uniform2f(gl.getUniformLocation(shaderProgram, "DeltaMouse"), DposX / 1000.0, DposY / 1000.0);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "L"), L);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "R"), R);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "T"), T);
+        gl.uniform1f(gl.getUniformLocation(shaderProgram, "B"), B);
+
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, neheTexture);
         gl.uniform1i(shaderProgram.samplerUniform, 0);
@@ -255,89 +263,67 @@
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
     }
 
-    function Zoom()
-    {
-        /*
-        GL = GX * (1 + S) / abs(GL - GR) / 500.0 - 1.0;
-        GR = GL + S;
-        GB = (500.0 - GY) * (1 + S) / abs(GB - GT) / 500.0 - 1.0;
-        GT = GB + S;
-        */
-        var W =  abs(GL - GR), H = abs(GT - GB);
-        GL += GX / 500.0 * W * (1 - S);
-        GR = GL + W * S;
-        GT += GY / 500.0 * H * (1 - S);
-        GB = GT + H * S;
+    function wheel() {
+        var evt = window.event || e;
+        var rect = document.getElementById('canvas');
+        var delta = ((((event.wheelDelta) ? event.wheelDelta / 120 : event.detail / -3) || false) > 0) ? (9.0 / 10.0) : (10.0 / 9.0);
+        posX = evt.clientX - rect.getBoundingClientRect().left;
+        posY = evt.clientY - rect.getBoundingClientRect().top;
+        W = R - L;
+        H = T - B;
+        L = L + posX / rect.width * W * (1 - delta);
+        R = L + W * delta;
+        B = B + posY / rect.height * H * (1 - delta);
+        T = B + H * delta;
     }
 
-    function onWheel(e) {
-       //e = e || window.event;
+    function mouse_position() {
+        var e = window.event;
 
-        var d = ((event.wheelDelta) ? event.wheelDelta / 120 : event.detail / -3) || false;
-
-        S = (d > 0) ? (9.0 / 10.0) : (10.0 / 9.0);
-
-        //S += delta / 3000.0;
-
-        Zoom();
-        e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+        posX = e.clientX;
+        posY = e.clientY;
     }
 
-    var KEY_CODE = {
-        LEFT: 65,
-        UP: 83,
-        RIGHT: 68,
-        DOWN: 87,
-        PLUS: 107,
-        MINUS: 109
-    };
-
-    function GetChar(e)
-    {
+    var IsDrag = 0;
+    function dragStart() {
+        IsDrag = 1;
     }
 
-    var MouseFlag = false;
-
-    function MouseDown(e)
-    {
-        MouseFlag = true;
+    function dragEnd() {
+        IsDrag = 0;
     }
 
-    function MouseUp(e)
-    {
-        MouseFlag = false;
-    }
+    var DposY = 0.0;
+    var DposX = 0.0;
 
-    function MouseMove(e)
-    {
-
-        if (MouseFlag)
-        {
-            var W =  abs(GL - GR), H = abs(GT - GB);
-            GL -= (e.clientX - GX) / 500.0 * W * 2.0;
-            GR -= (e.clientX - GX) / 500.0 * W * 2.0;
-            GB -= (e.clientY - GY) / 500.0 * H * 2.0;
-            GT -= (e.clientY - GY) / 500.0 * H * 2.0;
-
+    function dragNow() {
+        var e = window.event;
+        var rect = document.getElementById('canvas').getBoundingClientRect();
+        if (IsDrag) {
+            var deltaX, deltaY;
+            deltaX = e.clientX - rect.left - posX;
+            deltaY = e.clientY - rect.top - posY;
+            L -= deltaX / (rect.width / (R - L));
+            R -= deltaX / (rect.width / (R - L));
+            B -= deltaY / (rect.height / (T - B));
+            T -= deltaY / (rect.height / (T - B));
         }
-        GX = e.clientX;
-        GY = e.clientY;
-        document.getElementById("range30").value = GX + ":" + GY;
+        posX = e.clientX - rect.left;
+        posY = e.clientY - rect.top;
     }
-
 
     function webGLStart() {
-        var canvas = document.getElementById("lesson01-canvas");
+        document.body.style.cursor = 'default';
+        var canvas = document.getElementById("canvas");
         initGL(canvas);
         initShaders();
         initBuffers();
         initTexture();
         FramebufferCreate();
-        canvas.addEventListener("wheel", onWheel);
-        window.addEventListener("keydown", GetChar);
-        canvas.addEventListener("mousemove", MouseMove);
-        window.addEventListener("mouseup", MouseUp);
-        canvas.addEventListener("mousedown", MouseDown);
+        canvas.addEventListener("wheel", wheel);
+        canvas.addEventListener("mousemove", dragNow);
+        window.addEventListener("mouseup", dragEnd);
+        canvas.addEventListener("mousedown", dragStart);
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
@@ -353,8 +339,55 @@
         M = value;
     }
 
+    function wheel() {
+        var evt = window.event || e;
+        var rect = document.getElementById('canvas');
+        var delta = ((((event.wheelDelta) ? event.wheelDelta / 120 : event.detail / -3) || false) > 0) ? (9.0 / 10.0) : (10.0 / 9.0);
+        posX = evt.clientX - rect.getBoundingClientRect().left;
+        posY = evt.clientY - rect.getBoundingClientRect().top;
+        W = R - L;
+        H = T - B;
+        L = L + posX / rect.width * W * (1 - delta);
+        R = L + W * delta;
+        B = B + posY / rect.height * H * (1 - delta);
+        T = B + H * delta;
+    }
 
-</script>
+    function mouse_position() {
+        var e = window.event;
+
+        posX = e.clientX;
+        posY = e.clientY;
+    }
+
+    var IsDrag = 0;
+    function dragStart() {
+        IsDrag = 1;
+    }
+
+    function dragEnd() {
+        IsDrag = 0;
+    }
+
+    var DposY = 0.0;
+    var DposX = 0.0;
+
+    function dragNow() {
+        var e = window.event;
+        var rect = document.getElementById('canvas').getBoundingClientRect();
+        if (IsDrag) {
+            var deltaX, deltaY;
+            deltaX = e.clientX - rect.left - posX;
+            deltaY = e.clientY - rect.top - posY;
+            L -= deltaX / (rect.width / (R - L));
+            R -= deltaX / (rect.width / (R - L));
+            B -= deltaY / (rect.height / (T - B));
+            T -= deltaY / (rect.height / (T - B));
+        }
+        posX = e.clientX - rect.left;
+        posY = e.clientY - rect.top;
+    }
+    </script>
 
 
 </head>
@@ -366,13 +399,13 @@
     <table>
         <tr>
             <td>
-                <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas>
+                <canvas id="canvas" style="border: none;" width="500" height="500"></canvas>
             </td>
             <td>
                 <input type="text" value="30" id="range30" onkeyup="update()"> <br/>
                 <input type="range" min="1" max="239" value="2" id="range239"> <br/>
                 <input type="range" min="1" max="300" value="59" id="rangeN" onchange="updateN(this.value)"> <br/>
-                <input type="range" min="1" max="300" value="30" id="rangeM" onchange="updateM(this.value)"> <br/>
+                <input type="range" min="1" max="300" value="59" id="rangeM" onchange="updateM(this.value)"> <br/>
             </td>
         </tr>
     </table>

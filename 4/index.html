@@ -6,6 +6,7 @@
     <script type="text/javascript" src="MTLLoader.js"></script>
     <script type="text/javascript" src="OBJLoader.js"></script>
     <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script typr="text/javascript" src="Stats.js"></script>>
 
     <script type="text/javascript">
         var scene;
@@ -40,15 +41,18 @@
         }
 
         function renderScene() {
+            stats.begin();
             requestAnimationFrame(renderScene);
 
             step+=0.04;
+
+            KeyboardHandle();
 
             light.position.x = -30 * Math.sin(step);
             light.position.z = 30 * Math.cos(step);
             light.lookAt(scene.position);
 
-            //sphere.rotation.y += 0.2;
+            /* sphere.rotation.y += 0.2; */
 
 
             sphere.visible = false;
@@ -56,12 +60,17 @@
             sphere.visible = true;
 
             renderer.render(scene, camera);
+            stats.end();
         }
+
+        var stats ;
 
         var MouseFlag = false;
 
         var MouseX = -1;
         var MouseY = -1;
+
+        var Keys = [];
 
         function CamRecalc()
         {
@@ -98,7 +107,6 @@
         function onWheel(e) {
             e = e || window.event;
 
-            // wheelDelta ?? ???? ??????????? ?????? ?????????? ????????
             var delta = e.deltaY || e.detail || e.wheelDelta;
 
             CamL += delta / 30.0;
@@ -116,39 +124,34 @@
             MINUS: 109
         };
 
-        function GetChar(e)
+        function KeyDown(e)
         {
-            switch(e.keyCode)
-            {
-                case KEY_CODE.UP:
-                    obj.position.add(dalekLook);
-                    break;
-                case KEY_CODE.RIGHT:
-                    obj.rotation.y -= 0.1;
-                    dalekLook.x = dalekSpeed * Math.sin(obj.rotation.y);
-                    dalekLook.z = dalekSpeed * Math.cos(obj.rotation.y);
-                    break;
-                case KEY_CODE.LEFT:
-                    obj.rotation.y += 0.1;
-                    dalekLook.x = dalekSpeed * Math.sin(obj.rotation.y);
-                    dalekLook.z = dalekSpeed * Math.cos(obj.rotation.y);
-                    break;
-            }
+            Keys[e.keyCode] = true;
+        }
+
+        function KeyUp(e)
+        {
+            Keys[e.keyCode] = false;
         }
 
         function init(){
+            stats = new Stats();
+            stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+            document.body.appendChild( stats.dom );
+
             document.body.style.cursor = 'default';
 
             window.addEventListener("mousemove", MouseMove);
             window.addEventListener("mouseup", MouseUp);
             window.addEventListener("mousedown", MouseDown);
             window.addEventListener("wheel", onWheel);
-            window.addEventListener("keydown", GetChar);
+            window.addEventListener("keydown", KeyDown);
+            window.addEventListener("keyup", KeyUp);
 
             dalekLook = new THREE.Vector3(0, 0, dalekSpeed);
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45
-                    , window.innerWidth / window.innerHeight , 0.1, 1000);
+                    , window.innerWidth / window.innerHeight , 0.1, 10000);
             CamRecalc();
 
 
@@ -159,13 +162,18 @@
             //renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
             var urls = [
-                'skybox/xpos.png',
-                'skybox/xneg.png',
-                'skybox/ypos.png',
-                'skybox/yneg.png',
-                'skybox/zpos.png',
-                'skybox/zneg.png'
+                'xpos',
+                'xneg',
+                'ypos',
+                'yneg',
+                'zpos',
+                'zneg'
             ];
+
+            for (var i  = 0; i < 6; i++)
+            {
+                urls[i] = "skybox/" + urls[i] + ".png";
+            }
 
             var cubemap1 = THREE.ImageUtils.loadTextureCube(urls); // load textures
             cubemap1.format = THREE.RGBFormat;
@@ -220,7 +228,9 @@
             cubeCamera.position.y = 4;
             scene.add( cubeCamera );
 
-            var sphereGeometry = new THREE.SphereGeometry(10,20,20);
+
+
+            var sphereGeometry = new THREE.SphereGeometry(10,200,200);
             var sphereMaterial =
                     new THREE.ShaderMaterial({
                         uniforms: {
@@ -264,6 +274,24 @@
 
             $("#WebGL-output").append(renderer.domElement);
             renderScene();
+        }
+
+        function KeyboardHandle()
+        {
+            if(Keys[KEY_CODE.UP])
+                obj.position.add(dalekLook);
+            if(Keys[KEY_CODE.RIGHT])
+            {
+                obj.rotation.y -= 0.1;
+                dalekLook.x = dalekSpeed * Math.sin(obj.rotation.y);
+                dalekLook.z = dalekSpeed * Math.cos(obj.rotation.y);
+            }
+            if (Keys[KEY_CODE.LEFT])
+            {
+                obj.rotation.y += 0.1;
+                dalekLook.x = dalekSpeed * Math.sin(obj.rotation.y);
+                dalekLook.z = dalekSpeed * Math.cos(obj.rotation.y);
+            }
         }
     </script>
 </head>
