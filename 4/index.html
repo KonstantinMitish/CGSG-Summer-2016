@@ -6,7 +6,14 @@
     <script type="text/javascript" src="MTLLoader.js"></script>
     <script type="text/javascript" src="OBJLoader.js"></script>
     <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
-    <script typr="text/javascript" src="Stats.js"></script>>
+    <script type="text/javascript" src="Stats.js"></script>
+    <link rel="stylesheet" href="css/colorpicker.css" type="text/css" />
+    <link rel="stylesheet" media="screen" type="text/css" href="css/layout.css" />
+    <script type="text/javascript" src="js/colorpicker.js"></script>
+    <script type="text/javascript" src="js/eye.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/layout.js?ver=1.0.2"></script>
+
 
     <script type="text/javascript">
         var scene;
@@ -15,8 +22,12 @@
         var obj;
         var plane;
         var light;
-        var cubeCamera;
-        var sphere;
+        var cubeCameraReflection;
+        var cubeCameraRefraction;
+        var objReflection;
+        var objRefraction;
+
+        var render_canvas;
 
         var dalekLook;
         var dalekSpeed = 1.0;
@@ -44,7 +55,7 @@
             stats.begin();
             requestAnimationFrame(renderScene);
 
-            step+=0.04;
+            step += 0.04;
 
             KeyboardHandle();
 
@@ -52,12 +63,15 @@
             light.position.z = 30 * Math.cos(step);
             light.lookAt(scene.position);
 
-            /* sphere.rotation.y += 0.2; */
+            objReflection.visible = false;
+            cubeCameraReflection.position.copy(objReflection.position);
+            cubeCameraReflection.updateCubeMap( renderer, scene );
+            objReflection.visible = true;
 
-
-            sphere.visible = false;
-            cubeCamera.updateCubeMap( renderer, scene );
-            sphere.visible = true;
+            objRefraction.visible = false;
+            cubeCameraRefraction.position.copy(objRefraction.position);
+            cubeCameraRefraction.updateCubeMap( renderer, scene );
+            objRefraction.visible = true;
 
             renderer.render(scene, camera);
             stats.end();
@@ -134,30 +148,60 @@
             Keys[e.keyCode] = false;
         }
 
-        function init(){
-            stats = new Stats();
-            stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-            document.body.appendChild( stats.dom );
+        function init()
+        {
+         initGUI();
+         initG();
+        }
 
+        function initGUI()
+        {
             document.body.style.cursor = 'default';
 
-            window.addEventListener("mousemove", MouseMove);
+            render_canvas = document.getElementById("canvas");
+            render_canvas.addEventListener("mousemove", MouseMove);
             window.addEventListener("mouseup", MouseUp);
-            window.addEventListener("mousedown", MouseDown);
+            render_canvas.addEventListener("mousedown", MouseDown);
             window.addEventListener("wheel", onWheel);
             window.addEventListener("keydown", KeyDown);
             window.addEventListener("keyup", KeyUp);
 
+        $('#colorSelector').ColorPicker({
+            color: '#0000ff',
+            onShow: function (colpkr)
+            {
+                $(colpkr).fadeIn(500);
+                return false;
+            },
+            onHide: function (colpkr)
+            {
+                $(colpkr).fadeOut(500);
+                return false;
+            },
+            onChange: function (hsb, hex, rgb)
+            {
+                objRefraction.material.color.setHex(parseInt(hex, 16));
+            }
+        });
+
+        }
+
+        function initG(){
+            stats = new Stats();
+            stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+
+
+            document.body.appendChild( stats.dom );
+
             dalekLook = new THREE.Vector3(0, 0, dalekSpeed);
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45
-                    , window.innerWidth / window.innerHeight , 0.1, 10000);
+                    , render_canvas.width / render_canvas.height , 0.1, 10000);
             CamRecalc();
 
-
-            renderer = new THREE.WebGLRenderer();
+            renderer = new THREE.WebGLRenderer( {canvas : render_canvas, antialias: true });
             renderer.setClearColor(1, 255);
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(render_canvas.width, render_canvas.height);
             renderer.shadowMapEnabled = true;
             //renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
@@ -216,27 +260,34 @@
                     object.scale.x = 0.1;
                     object.scale.y = 0.1;
                     object.scale.z = 0.1;
-                    object.position.x = 20;
-                    object.position.z = 2;
                     obj = object;
                     scene.add( obj );
                 } );
             });
 
             /* cubemap support */
-            cubeCamera = new THREE.CubeCamera( 1, 100000, 512 );
-            cubeCamera.position.y = 4;
-            scene.add( cubeCamera );
+            cubeCameraReflection = new THREE.CubeCamera( 1, 100000, 128 );
+            cubeCameraReflection.position.x = 20;
+            cubeCameraReflection.position.y = 10;
+            cubeCameraReflection.position.z = 2;
+            scene.add( cubeCameraReflection );
+
+            cubeCameraRefraction = new THREE.CubeCamera( 1, 100000, 128 );
+            cubeCameraRefraction.renderTarget.mapping = THREE.CubeRefractionMapping;
+            cubeCameraRefraction.position.x = -20;
+            cubeCameraRefraction.position.y = 10;
+            cubeCameraRefraction.position.z = 2;
+            scene.add( cubeCameraRefraction );
 
 
 
             var sphereGeometry = new THREE.SphereGeometry(10,200,200);
-            var sphereMaterial =
+            var reflectionMaterial =
                     new THREE.ShaderMaterial({
                         uniforms: {
                             "cubemap": {
                                 type: "t",
-                                value: cubeCamera.renderTarget
+                                value: cubeCameraReflection.renderTarget
                             },
                             "camPos": {
                                 type: "v3",
@@ -246,10 +297,22 @@
                         vertexShader:   fopen("reflect.vert"),
                         fragmentShader: fopen("reflect.frag")
                     });
-            sphere = new THREE.Mesh(sphereGeometry,sphereMaterial);
-            sphere .position.copy( cubeCamera.position );
-            sphere.castShadow = true;
-            scene.add(sphere);
+            objReflection = new THREE.Mesh(sphereGeometry,reflectionMaterial);
+            objReflection.position.copy(cubeCameraReflection.position);
+            objReflection.castShadow = true;
+            scene.add(objReflection);
+
+            var refractionMaterial = new THREE.MeshBasicMaterial(
+                    {
+                        color:0xffee00,
+                        envMap: cubeCameraRefraction.renderTarget,
+                        refractionRatio: 1.0
+                    });
+            objRefraction = new THREE.Mesh(sphereGeometry,refractionMaterial);
+            objRefraction.position.copy(cubeCameraRefraction.position)
+            objRefraction.scale = new THREE.Vector3(0.5, 0.5, 0.5);
+            objRefraction.castShadow = true;
+            scene.add(objRefraction);
 
             var planeGeometry = new THREE.PlaneGeometry(50, 50, 100, 100);
             var planeMaterial = new THREE.MeshLambertMaterial(
@@ -272,7 +335,7 @@
             light.shadowDarkness = 0.5;
             scene.add(light);
 
-            $("#WebGL-output").append(renderer.domElement);
+            //$("#WebGL-output").append(renderer.domElement);
             renderScene();
         }
 
@@ -296,7 +359,17 @@
     </script>
 </head>
 <body onload="init()" style="margin: 0; overflow: hidden;">
-<div id="WebGL-output">
-</div>
+<table>
+    <tr>
+        <td>
+                <canvas width="1280" height="720" style="width: 1280px; height: 720px;" id="canvas"></canvas>
+        </td>
+    </tr>
+    <tr>
+        <td>
+        <div id="colorSelector"><div style="background-color: #0000ff"></div></div>
+        </td>
+    </tr>
+</table>
 </body>
 </html>
