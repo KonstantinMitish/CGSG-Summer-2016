@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src="three.js"></script>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="MTLLoader.js"></script>
+    <script type="text/javascript" src="OBJLoader.js"></script>
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="Stats.js"></script>
+    <link rel="stylesheet" href="css/colorpicker.css" type="text/css" />
+    <link rel="stylesheet" media="screen" type="text/css" href="css/layout.css" />
+    <script type="text/javascript" src="js/colorpicker.js"></script>
+    <script type="text/javascript" src="js/eye.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/layout.js?ver=1.0.2"></script>
+    <script type="text/javascript">
+
+        function load(value)
+        {
+            $("#content").load("./" + value + "/index.html", function(){
+                init();
+            });
+        }
+    </script>
+</head>
+<body>
+<table align="center">
+    <tr>
+        <td>
+            <select align="center" onChange="load(this.value)">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                </select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="content"></div>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

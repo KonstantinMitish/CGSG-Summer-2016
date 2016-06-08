@@ -502,7 +502,7 @@ void main( void )
     }
 
 
-    function webGLStart() {
+    function init() {
         var canvas = document.getElementById("lesson05-canvas");
         initGL(canvas);
         FramebufferCreate();
@@ -534,7 +534,7 @@ void main( void )
 </head>
 
 
-<body onload="webGLStart();">
+<body onload="init();">
 
 <table>
     <tr>

@@ -13,8 +13,6 @@
     <script type="text/javascript" src="js/eye.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <script type="text/javascript" src="js/layout.js?ver=1.0.2"></script>
-
-
     <script type="text/javascript">
         var scene;
         var camera;
@@ -26,66 +24,46 @@
         var cubeCameraRefraction;
         var objReflection;
         var objRefraction;
-
         var render_canvas;
-
         var dalekLook;
         var dalekSpeed = 1.0;
-
         var step = 0;
-
         var CamAX = 1.0;
         var CamAY = 0.8;
         var CamL = 50.0;
-
         function fopen(FileName)
         {
             var str = "";
             var xhr = new XMLHttpRequest();
-
             xhr.open('GET', FileName, false);
-
             xhr.send();
-
             str = xhr.responseText;
             return str;
         }
-
         function renderScene() {
             stats.begin();
             requestAnimationFrame(renderScene);
-
             step += 0.04;
-
             KeyboardHandle();
-
             light.position.x = -30 * Math.sin(step);
             light.position.z = 30 * Math.cos(step);
             light.lookAt(scene.position);
-
             objReflection.visible = false;
             cubeCameraReflection.position.copy(objReflection.position);
             cubeCameraReflection.updateCubeMap( renderer, scene );
             objReflection.visible = true;
-
             objRefraction.visible = false;
             cubeCameraRefraction.position.copy(objRefraction.position);
             cubeCameraRefraction.updateCubeMap( renderer, scene );
             objRefraction.visible = true;
-
             renderer.render(scene, camera);
             stats.end();
         }
-
         var stats ;
-
         var MouseFlag = false;
-
         var MouseX = -1;
         var MouseY = -1;
-
         var Keys = [];
-
         function CamRecalc()
         {
             camera.position.x = CamL * Math.sin(CamAX) * Math.cos(CamAY);
@@ -93,12 +71,10 @@
             camera.position.y = CamL * Math.sin(CamAY);
             camera.lookAt(scene.position);
         }
-
         function MouseUp(e)
         {
             MouseFlag = false;
         }
-
         function MouseMove(e)
         {
             if (MouseFlag)
@@ -110,25 +86,19 @@
                 MouseY = e.clientY;
             }
         }
-
         function MouseDown(e)
         {
             MouseFlag = true;
             MouseX = e.clientX;
             MouseY = e.clientY;
         }
-
         function onWheel(e) {
             e = e || window.event;
-
             var delta = e.deltaY || e.detail || e.wheelDelta;
-
             CamL += delta / 30.0;
             CamRecalc();
-
             e.preventDefault ? e.preventDefault() : (e.returnValue = false);
         }
-
         var KEY_CODE = {
             LEFT: 65,
             UP: 87,
@@ -137,27 +107,22 @@
             PLUS: 107,
             MINUS: 109
         };
-
         function KeyDown(e)
         {
             Keys[e.keyCode] = true;
         }
-
         function KeyUp(e)
         {
             Keys[e.keyCode] = false;
         }
-
         function init()
         {
-         initGUI();
-         initG();
+            initGUI();
+            initG();
         }
-
         function initGUI()
         {
             document.body.style.cursor = 'default';
-
             render_canvas = document.getElementById("canvas");
             render_canvas.addEventListener("mousemove", MouseMove);
             window.addEventListener("mouseup", MouseUp);
@@ -165,46 +130,22 @@
             window.addEventListener("wheel", onWheel);
             window.addEventListener("keydown", KeyDown);
             window.addEventListener("keyup", KeyUp);
-
-        $('#colorSelector').ColorPicker({
-            color: '#0000ff',
-            onShow: function (colpkr)
-            {
-                $(colpkr).fadeIn(500);
-                return false;
-            },
-            onHide: function (colpkr)
-            {
-                $(colpkr).fadeOut(500);
-                return false;
-            },
-            onChange: function (hsb, hex, rgb)
-            {
-                objRefraction.material.color.setHex(parseInt(hex, 16));
-            }
-        });
-
+            $('#colorSelector').ColorPicker({flat: true});
         }
-
         function initG(){
             stats = new Stats();
             stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-
-
             document.body.appendChild( stats.dom );
-
             dalekLook = new THREE.Vector3(0, 0, dalekSpeed);
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45
                     , render_canvas.width / render_canvas.height , 0.1, 10000);
             CamRecalc();
-
             renderer = new THREE.WebGLRenderer( {canvas : render_canvas, antialias: true });
             renderer.setClearColor(1, 255);
             renderer.setSize(render_canvas.width, render_canvas.height);
             renderer.shadowMapEnabled = true;
             //renderer.shadowMapType = THREE.PCFSoftShadowMap;
-
             var urls = [
                 'xpos',
                 'xneg',
@@ -213,18 +154,14 @@
                 'zpos',
                 'zneg'
             ];
-
             for (var i  = 0; i < 6; i++)
             {
                 urls[i] = "skybox/" + urls[i] + ".png";
             }
-
             var cubemap1 = THREE.ImageUtils.loadTextureCube(urls); // load textures
             cubemap1.format = THREE.RGBFormat;
-
             var shader = THREE.ShaderLib['cube']; // init cube shader from built-in lib
             shader.uniforms['tCube'].value = cubemap1; // apply textures to shader
-
             var skyBoxMaterial = new THREE.ShaderMaterial( {
                 fragmentShader: shader.fragmentShader,
                 vertexShader: shader.vertexShader,
@@ -232,14 +169,11 @@
                 depthWrite: false,
                 side: THREE.BackSide
             });
-
             var skybox = new THREE.Mesh(
                     new THREE.CubeGeometry(1000, 1000, 1000),
                     skyBoxMaterial
             );
-
             scene.add(skybox);
-
             var manager = new THREE.LoadingManager();
             var mtlLoader = new THREE.MTLLoader();
             mtlLoader.setPath( 'Daleks/' );
@@ -249,13 +183,10 @@
                 loader.setMaterials(materials);
                 loader.setPath( 'Daleks/' );
                 loader.load( 'Dalek.obj', function ( object ) {
-
                     object.traverse( function ( child ) {
-
                         if ( child instanceof THREE.Mesh ) {
                             child.castShadow = true;
                         }
-
                     } );
                     object.scale.x = 0.1;
                     object.scale.y = 0.1;
@@ -264,23 +195,18 @@
                     scene.add( obj );
                 } );
             });
-
             /* cubemap support */
             cubeCameraReflection = new THREE.CubeCamera( 1, 100000, 128 );
             cubeCameraReflection.position.x = 20;
             cubeCameraReflection.position.y = 10;
             cubeCameraReflection.position.z = 2;
             scene.add( cubeCameraReflection );
-
             cubeCameraRefraction = new THREE.CubeCamera( 1, 100000, 128 );
             cubeCameraRefraction.renderTarget.mapping = THREE.CubeRefractionMapping;
             cubeCameraRefraction.position.x = -20;
             cubeCameraRefraction.position.y = 10;
             cubeCameraRefraction.position.z = 2;
             scene.add( cubeCameraRefraction );
-
-
-
             var sphereGeometry = new THREE.SphereGeometry(10,200,200);
             var reflectionMaterial =
                     new THREE.ShaderMaterial({
@@ -301,7 +227,6 @@
             objReflection.position.copy(cubeCameraReflection.position);
             objReflection.castShadow = true;
             scene.add(objReflection);
-
             var refractionMaterial = new THREE.MeshBasicMaterial(
                     {
                         color:0xffee00,
@@ -313,7 +238,6 @@
             objRefraction.scale = new THREE.Vector3(0.5, 0.5, 0.5);
             objRefraction.castShadow = true;
             scene.add(objRefraction);
-
             var planeGeometry = new THREE.PlaneGeometry(50, 50, 100, 100);
             var planeMaterial = new THREE.MeshLambertMaterial(
                     {color: 0xffffff});
@@ -321,24 +245,19 @@
             plane.rotation.x = -Math.PI / 2;
             plane.receiveShadow = true;
             scene.add(plane);
-
             light = new THREE.SpotLight( 0xffffff );
             light.position.set( 100, 50, -100 );
             light.castShadow = true;
             light.shadowMapWidth = 1024;    // power of 2
             light.shadowMapHeight = 1024;
-
-
             light.shadowCameraNear = 0.01;
             light.shadowCameraFar = 500;
             light.shadowCameraFov = 10;
             light.shadowDarkness = 0.5;
             scene.add(light);
-
             //$("#WebGL-output").append(renderer.domElement);
             renderScene();
         }
-
         function KeyboardHandle()
         {
             if(Keys[KEY_CODE.UP])
@@ -362,12 +281,19 @@
 <table>
     <tr>
         <td>
-                <canvas width="1280" height="720" style="width: 1280px; height: 720px;" id="canvas"></canvas>
+            <canvas width="1280" height="720" style="width: 1280px; height: 720px;" id="canvas"></canvas>
         </td>
     </tr>
     <tr>
         <td>
-        <div id="colorSelector"><div style="background-color: #0000ff"></div></div>
+            <div id="colorSelector"><div style="background-color: #0000ff"></div></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <form align="left">
+                <input type="button" id="btn" value="Submit" align="left" onclick="updatePicker()"></input>
+            </form>
         </td>
     </tr>
 </table>

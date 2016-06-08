@@ -312,7 +312,7 @@
         posY = e.clientY - rect.top;
     }
 
-    function webGLStart() {
+    function init() {
         document.body.style.cursor = 'default';
         var canvas = document.getElementById("canvas");
         initGL(canvas);
@@ -393,7 +393,7 @@
 </head>
 
 
-<body onload="webGLStart();">
+<body onload="init();">
     <a href="http://learningwebgl.com/blog/?p=28">&lt;&lt; Back to Lesson 1</a><br />
 
     <table>
